@@ -1,0 +1,64 @@
+name: Bug
+description: Algo não funciona como deveria
+title: "bug: "
+labels: ["tipo:bug", "status:triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Vulnerabilidade de segurança?** Não abra issue pública. Siga o [SECURITY.md](https://github.com/G-E-I-C-I-S/PainKiller/blob/main/SECURITY.md).
+  - type: dropdown
+    id: onde
+    attributes:
+      label: Onde aconteceu
+      options:
+        - App do vigilante (mobile)
+        - Painel web
+        - API / servidor
+        - Notificações (e-mail / WhatsApp)
+        - Sincronização offline
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Iniciar uma ronda
+        2. Ativar o modo avião
+        3. Ler a tag do ponto X
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: atual
+    attributes:
+      label: Comportamento atual
+    validations:
+      required: true
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade
+      options:
+        - Crítica — perda de registro, falha de segurança ou ronda impossível
+        - Alta — funcionalidade principal prejudicada
+        - Média — há contorno
+        - Baixa — cosmético
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      placeholder: "Android 14, Samsung A54, app 1.0.0 (build 12), homologação"
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Prints, vídeos ou logs. Remova dados pessoais (nomes, matrículas, fotos de pessoas).

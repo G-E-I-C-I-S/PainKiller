@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar vulnerabilidade de segurança (privado)
+    url: https://github.com/G-E-I-C-I-S/PainKiller/security/advisories/new
+    about: Não abra issue pública para falhas de segurança.
+  - name: Documentação do projeto
+    url: https://github.com/G-E-I-C-I-S/PainKiller/tree/main/docs
+    about: Visão, requisitos, arquitetura, API e processo.

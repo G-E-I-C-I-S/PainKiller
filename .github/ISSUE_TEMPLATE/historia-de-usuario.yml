@@ -1,0 +1,98 @@
+name: História de usuário
+description: Funcionalidade com valor para um usuário (vigilante, coordenador, responsável ou administrador)
+title: "HU-XXX: "
+labels: ["tipo:historia", "status:triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use o formato do [backlog](https://github.com/G-E-I-C-I-S/PainKiller/blob/main/docs/14-backlog-e-roadmap.md). A história só entra na sprint quando cumprir a **Definition of Ready** ([processo Scrum](https://github.com/G-E-I-C-I-S/PainKiller/blob/main/docs/13-processo-scrum.md)).
+  - type: input
+    id: id
+    attributes:
+      label: ID da história
+      placeholder: HU-018
+    validations:
+      required: true
+  - type: dropdown
+    id: papel
+    attributes:
+      label: Papel
+      options:
+        - VIGILANTE
+        - COORDENADOR
+        - RESPONSAVEL
+        - ADMINISTRADOR
+    validations:
+      required: true
+  - type: textarea
+    id: historia
+    attributes:
+      label: História
+      description: Como <papel>, quero <ação>, para <benefício>.
+      placeholder: Como vigilante, quero registrar a passagem encostando o celular na tag, para comprovar que vistoriei o ponto.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação (Gherkin)
+      placeholder: |
+        Dado que tenho uma ronda em andamento
+        Quando encosto o celular na tag de um ponto do roteiro
+        Então o ponto aparece como visitado com ✓ e o celular vibra
+    validations:
+      required: true
+  - type: input
+    id: requisitos
+    attributes:
+      label: Requisitos e regras relacionados
+      placeholder: RF05, RF06, RF08, RN01, RN04
+  - type: dropdown
+    id: epico
+    attributes:
+      label: Épico
+      options:
+        - EP01 Fundação técnica
+        - EP02 Identidade e acesso
+        - EP03 Cadastros
+        - EP04 Planejamento de rondas
+        - EP05 Execução de ronda
+        - EP06 Ocorrências
+        - EP07 Notificações
+        - EP08 Online-first e sincronização
+        - EP09 Painel e histórico
+        - EP10 Auditoria
+        - EP11 Qualidade, segurança e implantação
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade (MoSCoW)
+      options:
+        - Must
+        - Should
+        - Could
+        - Won't (agora)
+  - type: dropdown
+    id: pontos
+    attributes:
+      label: Estimativa (story points)
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+        - A estimar
+  - type: dropdown
+    id: area
+    attributes:
+      label: Áreas afetadas
+      multiple: true
+      options:
+        - mobile
+        - api
+        - web
+        - infra
+        - docs

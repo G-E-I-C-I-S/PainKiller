@@ -1,0 +1,30 @@
+# Normaliza quebras de linha para LF no repositório (o time usa Windows, Linux e macOS)
+* text=auto eol=lf
+
+# Scripts do Windows mantêm CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binários
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.apk  binary
+*.aab  binary
+*.jar  binary
+*.keystore binary
+
+# Lockfiles: não tentar mesclar linha a linha e esconder do diff por padrão
+pnpm-lock.yaml merge=binary linguist-generated=true
+
+# Documentação conta como documentação nas estatísticas do GitHub
+docs/** linguist-documentation=true

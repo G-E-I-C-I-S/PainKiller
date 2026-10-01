@@ -1,0 +1,49 @@
+name: Tarefa técnica
+description: Trabalho técnico sem valor direto para o usuário final (setup, CI, refatoração, infraestrutura)
+title: "HU-XXX: "
+labels: ["tipo:tarefa-tecnica", "status:triagem"]
+body:
+  - type: input
+    id: id
+    attributes:
+      label: ID
+      placeholder: HU-002
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: O que precisa ser feito e por quê.
+    validations:
+      required: true
+  - type: textarea
+    id: pronto
+    attributes:
+      label: Critérios de pronto
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Áreas afetadas
+      multiple: true
+      options:
+        - mobile
+        - api
+        - web
+        - infra
+        - docs
+  - type: dropdown
+    id: pontos
+    attributes:
+      label: Estimativa (story points)
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+        - A estimar

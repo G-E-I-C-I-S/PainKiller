@@ -1,0 +1,13 @@
+# Todo PR para `develop` e `main` precisa da aprovação do mantenedor.
+# As regras de proteção (rulesets) exigem revisão do code owner e só o
+# mantenedor (admin do repositório) consegue mesclar.
+# Detalhes: docs/15-fluxo-git-e-contribuicao.md
+
+*                       @madeiragab
+
+# Áreas sensíveis — revisão obrigatória redobrada
+/.github/               @madeiragab
+/infra/                 @madeiragab
+/apps/api/src/nucleo/identidade/   @madeiragab
+/apps/mobile/src/core/crypto/      @madeiragab
+/apps/mobile/src/core/seguranca/   @madeiragab
