@@ -2,6 +2,16 @@
 // Ao publicar uma versão: acrescente uma entrada NO TOPO (a primeira é a versão atual).
 export const NOVIDADES: { v: string; d: string; t: string; itens: string[] }[] = [
   {
+    v: '0.2.3',
+    d: '01/11/2026',
+    t: 'Ponto gravado na tag',
+    itens: [
+      'Instalação de tags grava o ponto dentro da própria tag.',
+      'Modo Testar: encoste várias tags seguidas e veja o ponto gravado em cada uma.',
+      'Na ronda, o ponto é reconhecido pelo que está gravado na tag.',
+    ],
+  },
+  {
     v: '0.2.2',
     d: '01/11/2026',
     t: 'Erro do banco corrigido',

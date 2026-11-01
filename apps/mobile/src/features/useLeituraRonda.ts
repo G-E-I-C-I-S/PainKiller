@@ -35,7 +35,7 @@ export function useLeituraRonda(rondaId: string, aoAceitar: (pontoRondaId: strin
         if (!r || r.status !== 'EM_ANDAMENTO') return;
         const pontos = await pontosDaRonda(rondaId);
         const situacao = new Map<string, SituacaoPonto>(pontos.map((p) => [p.pontoRondaId, p.situacao]));
-        const resultado = avaliarLeitura(await pontoDaTag(l.uidHex), pontos, situacao, r.exigeOrdem);
+        const resultado = avaliarLeitura(l.pontoGravado?.pontoId ?? (await pontoDaTag(l.uidHex)), pontos, situacao, r.exigeOrdem);
         if (resultado.tipo === 'NAO_RECONHECIDA' || resultado.tipo === 'FORA_DO_ROTEIRO') {
           sinal.recusa();
           setRetorno({ tipo: 'ERRO', texto: resultado.tipo === 'NAO_RECONHECIDA' ? `${textos.execucao.naoReconhecida}\n${l.uidHex}` : textos.execucao.foraDoRoteiro });
