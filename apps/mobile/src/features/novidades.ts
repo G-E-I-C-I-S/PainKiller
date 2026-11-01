@@ -2,6 +2,12 @@
 // Ao publicar uma versão: acrescente uma entrada NO TOPO (a primeira é a versão atual).
 export const NOVIDADES: { v: string; d: string; t: string; itens: string[] }[] = [
   {
+    v: '0.2.2',
+    d: '01/11/2026',
+    t: 'Erro do banco corrigido',
+    itens: ['Corrigido o erro "file is not a database" ao entrar e ao registrar.'],
+  },
+  {
     v: '0.2.1',
     d: '01/11/2026',
     t: 'Login de teste corrigido',

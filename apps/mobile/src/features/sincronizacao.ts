@@ -1,7 +1,7 @@
 // Motor de sincronização online-first (docs/06): envia a fila em ordem, em lotes, com backoff; depois as fotos.
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
-import { db, kvGravar, kvLer, notificarMudanca, registrarErro } from '../dados/banco';
+import { db, transacao, kvGravar, kvLer, notificarMudanca, registrarErro } from '../dados/banco';
 import { aplicarPacote, aplicarRondas, type PacoteOffline, type RondaApi } from '../dados/pacote';
 import { apiUrl } from '../core/config';
 import { chamar, ErroApi } from '../core/api/cliente';
@@ -50,7 +50,7 @@ async function enviarEventos() {
     }
     const resultados = Array.isArray(resp.dados) ? resp.dados : resp.dados.resultados;
     const enviadoEm = new Date().toISOString();
-    await db().withExclusiveTransactionAsync(async (tx) => {
+    await transacao(async (tx) => {
       for (const r of resultados) {
         if (r.resultado === 'REJEITADO') {
           await tx.runAsync(

@@ -1,6 +1,6 @@
 // Caminho único de escrita: grava o registro e o evento da fila na MESMA transação (ADR-0005).
 import { uuidv7 } from 'uuidv7';
-import { db, notificarMudanca } from '../dados/banco';
+import { db, transacao, notificarMudanca } from '../dados/banco';
 import { configuracao } from '../dados/repositorios';
 import { obterPosicaoNoEvento } from '../core/localizacao';
 import type { FotoProcessada } from '../core/camera';
@@ -9,7 +9,7 @@ import type { Gravidade, Localizacao, MotivoJustificativa, ResultadoGeo, TipoEve
 import { textos, hora } from '../textos';
 import { pedirSincronizacao } from './sincronizacao';
 
-type Tx = Parameters<Parameters<ReturnType<typeof db>['withExclusiveTransactionAsync']>[0]>[0];
+type Tx = ReturnType<typeof db>;
 
 const loc = (l: Localizacao | null) => (l ? { latitude: l.latitude, longitude: l.longitude, precisaoM: l.precisaoM } : null);
 
@@ -37,7 +37,7 @@ export async function iniciarRonda(rondaId: string, nome: string) {
   if (outra) throw new Error(textos.inicio.outraEmAndamento);
   const l = await posicao();
   const agora = new Date().toISOString();
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     await tx.runAsync("UPDATE ronda SET status = 'EM_ANDAMENTO', iniciada_em = ? WHERE id = ? AND status = 'AGENDADA'", agora, rondaId);
     await enfileirar(tx, uuidv7(), 'RONDA_INICIADA', { rondaId, iniciadaEmDispositivo: agora, localizacao: loc(l) }, `${nome} · ${hora(agora)}`);
   });
@@ -55,7 +55,7 @@ export async function registrarVisita(p: {
 }) {
   const id = uuidv7();
   const lido = p.leitura.lidaEm.toISOString();
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     await tx.runAsync(
       `INSERT INTO visita (id, ronda_id, ponto_ronda_id, uid_hex, payload_nfc, lido_em, latitude, longitude, precisao_m,
          localizacao_simulada, resultado_geo, fora_da_ordem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -82,7 +82,7 @@ export async function justificarPonto(rondaId: string, pontoRondaId: string, pon
   const l = await posicao();
   const id = uuidv7();
   const agora = new Date().toISOString();
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     await tx.runAsync(
       'INSERT INTO justificativa VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       id, rondaId, pontoRondaId, motivo, descricao, agora, l?.latitude ?? null, l?.longitude ?? null, l?.precisaoM ?? null,
@@ -110,7 +110,7 @@ export async function registrarOcorrencia(o: {
   const id = uuidv7();
   const agora = new Date().toISOString();
   const fotos = o.fotos.map((f) => ({ ...f, fotoId: uuidv7() }));
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     await tx.runAsync(
       `INSERT INTO ocorrencia (id, ronda_id, tipo_ocorrencia_id, gravidade, descricao, predio_id, ponto_ronda_id, registrada_em,
          latitude, longitude, precisao_m, detalhe_local, resolvido_no_local) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -151,7 +151,7 @@ export interface ChecklistItem {
 /** Checklist "Como está o local?" respondido depois da leitura. Evento PONTO_CONFERIDO (extensão do contrato). */
 export async function registrarChecklist(rondaId: string, pontoRondaId: string, pontoNome: string, itens: ChecklistItem[]) {
   const agora = new Date().toISOString();
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     const v = await tx.getFirstAsync<{ id: string }>('SELECT id FROM visita WHERE ronda_id = ? AND ponto_ronda_id = ?', rondaId, pontoRondaId);
     await tx.runAsync('UPDATE visita SET checklist = ? WHERE ronda_id = ? AND ponto_ronda_id = ?', JSON.stringify(itens), rondaId, pontoRondaId);
     const problemas = itens.filter((i) => !i.ok).length;
@@ -170,7 +170,7 @@ export async function finalizarRonda(
   const l = await posicao();
   const agora = new Date().toISOString();
   const observacao = extras.observacao?.trim() || null;
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     for (const j of extras.justificativas ?? []) {
       const id = uuidv7();
       const descricao = `Informado na finalização: ${textos.motivo[j.motivo]}`;

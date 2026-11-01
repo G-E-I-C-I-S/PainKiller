@@ -1,6 +1,6 @@
 // Pacote offline (dados de referência) e rondas: aplicação do que vem da API e dados do modo local.
 import { uuidv7 } from 'uuidv7';
-import { db, kvGravar, kvLer, notificarMudanca } from './banco';
+import { db, transacao, kvGravar, kvLer, notificarMudanca } from './banco';
 import type { ConfiguracaoCampus, Gravidade, StatusRonda, TipoTagNfc } from '../dominio/tipos';
 
 export interface PacoteOffline {
@@ -37,7 +37,7 @@ export interface RondaApi {
 
 export async function aplicarPacote(p: PacoteOffline) {
   const d = db();
-  await d.withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     for (const t of ['predio_ref', 'andar_ref', 'setor_ref', 'ponto_ronda_ref', 'tag_nfc_ref', 'tipo_ocorrencia_ref']) {
       await tx.runAsync(`DELETE FROM ${t}`);
     }
@@ -67,7 +67,7 @@ export async function aplicarPacote(p: PacoteOffline) {
 
 /** Atualiza as rondas vindas da API sem sobrescrever o estado local de rondas já iniciadas no aparelho. */
 export async function aplicarRondas(rondas: RondaApi[]) {
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     for (const r of rondas) {
       const local = await tx.getFirstAsync<{ status: string }>('SELECT status FROM ronda WHERE id = ?', r.id);
       if (!local) {
@@ -190,7 +190,7 @@ export async function criarRondasTeste() {
 
 /** Modo instalação local: vincula a tag ao ponto (substitui a tag anterior do ponto). */
 export async function vincularTagLocal(uidHex: string, tipo: TipoTagNfc, pontoRondaId: string, posicao: { latitude: number; longitude: number } | null) {
-  await db().withExclusiveTransactionAsync(async (tx) => {
+  await transacao(async (tx) => {
     await tx.runAsync('DELETE FROM tag_nfc_ref WHERE uid_hex = ? OR ponto_ronda_id = ?', uidHex, pontoRondaId);
     await tx.runAsync('INSERT INTO tag_nfc_ref VALUES (?, ?, ?)', uidHex, tipo, pontoRondaId);
     if (posicao) {

@@ -86,6 +86,15 @@ export async function abrirBanco(): Promise<SQLite.SQLiteDatabase> {
   return db;
 }
 
+/**
+ * Transação na mesma conexão já destravada com a chave.
+ * withExclusiveTransactionAsync abre outra conexão sem o PRAGMA key e o SQLCipher responde "file is not a database".
+ */
+export function transacao(fn: (tx: SQLite.SQLiteDatabase) => Promise<void>): Promise<void> {
+  const d = db();
+  return d.withTransactionAsync(() => fn(d));
+}
+
 export function db(): SQLite.SQLiteDatabase {
   if (!banco) throw new Error('Banco não aberto');
   return banco;
