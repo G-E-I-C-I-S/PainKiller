@@ -8,6 +8,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e
 
 ### Adicionado
 
+- App Guardião (`apps/mobile`, Expo SDK 57): login, desbloqueio por biometria, rondas com leitura NFC, localização no evento, justificativas, ocorrências com fotos, banco cifrado, fila de sincronização, modo instalação de tags, diagnóstico e modo local para testes sem servidor.
 - Documentação inicial do projeto: visão do produto, requisitos (RF01–RF19, RNF01–RNF14, RN01–RN19), casos de uso, arquitetura (C4), 14 ADRs, modelo de dados, estratégia online-first, contrato da API, app mobile e componentização, UX e design system, painel web, segurança e LGPD, estratégia de testes, processo Scrum, backlog (HU-001–HU-044), fluxo Git e implantação.
 - Configuração do repositório: `.gitignore`, `.gitattributes`, `.editorconfig`, `CODEOWNERS`, templates de issue e de pull request, política de segurança.
 - Modelo de ADR (`docs/adr/0000-modelo.md`) e índice de ADRs com o processo para propor decisões.

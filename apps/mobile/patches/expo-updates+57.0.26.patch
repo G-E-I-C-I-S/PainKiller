@@ -1,0 +1,17 @@
+diff --git a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/manifest/UpdateFactory.kt b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/manifest/UpdateFactory.kt
+index eed5a92..714c532 100644
+--- a/node_modules/expo-updates/android/src/main/java/expo/modules/updates/manifest/UpdateFactory.kt
++++ b/node_modules/expo-updates/android/src/main/java/expo/modules/updates/manifest/UpdateFactory.kt
+@@ -15,10 +15,8 @@ object UpdateFactory {
+     return when (val expoProtocolVersion = responseHeaderData.protocolVersion) {
+       // TODO(wschurman): remove error in a few major releases after SDK 51 when it's unlikely classic updates
+       // may erroneously be served
+-      null -> {
+-        throw Exception("Legacy manifests are no longer supported")
+-      }
+-      0, 1 -> {
++      // Guardião: manifesto estático no GitHub Pages (sem header expo-protocol-version) é tratado como protocolo 1.
++      null, 0, 1 -> {
+         ExpoUpdatesUpdate.fromExpoUpdatesManifest(ExpoUpdatesManifest(manifestJson), extensions, configuration)
+       }
+       else -> {

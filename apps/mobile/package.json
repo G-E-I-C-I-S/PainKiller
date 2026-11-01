@@ -1,0 +1,51 @@
+{
+  "name": "@painkiller/mobile",
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@react-native-community/netinfo": "12.0.1",
+    "expo": "~57.0.31",
+    "expo-audio": "~57.0.5",
+    "expo-build-properties": "~57.0.22",
+    "expo-camera": "~57.0.6",
+    "expo-constants": "~57.0.22",
+    "expo-crypto": "~57.0.4",
+    "expo-dev-client": "~57.0.20",
+    "expo-file-system": "~57.0.7",
+    "expo-haptics": "~57.0.3",
+    "expo-image-manipulator": "~57.0.21",
+    "expo-linking": "~57.0.13",
+    "expo-local-authentication": "~57.0.3",
+    "expo-location": "~57.0.22",
+    "expo-router": "~57.0.29",
+    "expo-screen-capture": "~57.0.4",
+    "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.10",
+    "expo-sqlite": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "expo-updates": "~57.0.26",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-nfc-manager": "^4.2.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "uuidv7": "^1.2.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "patch-package": "^8.0.1",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/dominio/*.test.ts",
+    "build:apk": "expo prebuild -p android && cd android && gradlew assembleRelease",
+    "postinstall": "patch-package"
+  },
+  "private": true
+}

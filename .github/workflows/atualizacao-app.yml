@@ -1,0 +1,43 @@
+# Publica a atualização automática do app (JS/telas) no GitHub Pages (branch gh-pages) a cada push na main.
+# O app instalado procura a versão nova ao abrir, baixa e reinicia sozinho.
+# Mudança nativa (lib, permissão, plugin) exige subir o runtimeVersion no app.config.ts e gerar APK novo.
+name: Atualização do app
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/mobile/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    env:
+      # Igual ao ambiente do APK de teste instalado.
+      APP_AMBIENTE: desenvolvimento
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: node scripts/publicar-atualizacao.mjs ../../site
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
