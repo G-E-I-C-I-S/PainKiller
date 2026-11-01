@@ -1,15 +1,15 @@
 // Instalação de tags (UC19): grava o ponto DENTRO da tag e testa várias tags seguidas mostrando o que cada uma tem gravado.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { leitorNfcReal, registrarOuvinteSimulado, abrirConfiguracoesNfc, gravarPontoNaTag, cancelarGravacao } from '../src/core/nfc/LeitorNfc';
+import { leitorNfcReal, registrarOuvinteSimulado, abrirConfiguracoesNfc, gravarPontoNaTag, limparTag, cancelarGravacao } from '../src/core/nfc/LeitorNfc';
 import type { LeituraNfc } from '../src/core/nfc/parser';
 import { chamar, ErroApi } from '../src/core/api/cliente';
 import { obterPosicaoNoEvento, pedirPermissaoLocalizacao } from '../src/core/localizacao';
 import { retorno } from '../src/core/retorno';
 import { useConsulta } from '../src/dados/banco';
 import { pontos as lerPontos } from '../src/dados/repositorios';
-import { vincularTagLocal } from '../src/dados/pacote';
+import { desvincularTagLocal, vincularTagLocal } from '../src/dados/pacote';
 import { atualizarReferencias } from '../src/features/sincronizacao';
 import { useSessao } from '../src/features/sessao';
 import { SimuladorNfc } from '../src/features/SimuladorNfc';
@@ -25,6 +25,8 @@ const t = textos.instalacao;
 function mensagemErroGravacao(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e);
   if (m === 'TAG_SEM_NDEF') return t.semNdef;
+  if (m === 'TAG_COM_OUTRO_CONTEUDO') return t.outroConteudo;
+  if (m.startsWith('TAG_JA_GRAVADA:')) return t.jaGravada(m.slice('TAG_JA_GRAVADA:'.length));
   if (/cancel/i.test(m)) return t.cancelado;
   if (/size|capacity|too large|exceed/i.test(m)) return t.semEspaco;
   if (/read.?only|not writable/i.test(m)) return t.somenteLeitura;
@@ -40,7 +42,8 @@ export default function Instalacao() {
   const [pontoId, setPontoId] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
   const [usarPosicao, setUsarPosicao] = useState(false);
-  const [gravando, setGravando] = useState(false);
+  const [operacao, setOperacao] = useState<'GRAVAR' | 'LIMPAR' | null>(null);
+  const gravando = operacao !== null;
   const [gravado, setGravado] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [nfcOk, setNfcOk] = useState(true);
@@ -81,7 +84,7 @@ export default function Instalacao() {
     if (!ponto) return;
     setErro(null);
     setGravado(null);
-    setGravando(true);
+    setOperacao('GRAVAR');
     try {
       await leitorNfcReal.parar();
       const localTexto = [ponto.predioNome, ponto.andarNome].filter(Boolean).join(' · ');
@@ -97,19 +100,43 @@ export default function Instalacao() {
         await atualizarReferencias().catch(() => {});
       }
       retorno.sucessoGravado();
-      setGravado(`${ponto.nome}${localTexto ? ` · ${localTexto}` : ''}`);
+      setGravado(t.gravouOk(`${ponto.nome}${localTexto ? ` · ${localTexto}` : ''}`));
       setPontoId(null);
     } catch (e) {
       retorno.recusa();
       setErro(mensagemErroGravacao(e));
     } finally {
-      setGravando(false);
+      setOperacao(null);
     }
   };
 
+  const limpar = async () => {
+    setErro(null);
+    setGravado(null);
+    setOperacao('LIMPAR');
+    try {
+      await leitorNfcReal.parar();
+      const { uidHex, apagado } = await limparTag();
+      if (local) await desvincularTagLocal(uidHex);
+      retorno.sucessoGravado();
+      setGravado(apagado ? t.limpouOk(apagado.nome) : t.jaVazia);
+    } catch (e) {
+      retorno.recusa();
+      setErro(mensagemErroGravacao(e));
+    } finally {
+      setOperacao(null);
+    }
+  };
+
+  const confirmarLimpar = () =>
+    Alert.alert(t.confirmarLimparTitulo, t.confirmarLimpar, [
+      { text: t.confirmarNao, style: 'cancel' },
+      { text: t.confirmarSim, style: 'destructive', onPress: limpar },
+    ]);
+
   const cancelar = async () => {
     await cancelarGravacao();
-    setGravando(false);
+    setOperacao(null);
   };
 
   const trocarModo = async (m: Modo) => {
@@ -131,7 +158,10 @@ export default function Instalacao() {
             gravando ? (
               <Botao variante="secundario" titulo={t.cancelar} onPress={cancelar} />
             ) : (
-              <Botao titulo={t.gravar} onPress={gravar} desabilitado={!pontoId} />
+              <View style={{ gap: esp[2] }}>
+                <Botao titulo={t.gravar} onPress={gravar} desabilitado={!pontoId} />
+                <Botao variante="contornoErro" titulo={t.limparTag} onPress={confirmarLimpar} />
+              </View>
             )
           ) : lidas.length ? (
             <Botao variante="secundario" titulo={t.limpar} onPress={() => setLidas([])} />
@@ -186,8 +216,8 @@ export default function Instalacao() {
           </>
         ) : (
           <>
-            {gravando ? <AvisoInline tipo="info" texto={t.encosteGravar} /> : null}
-            {gravado ? <AvisoInline tipo="sucesso" texto={t.gravouOk(gravado)} /> : null}
+            {operacao ? <AvisoInline tipo="info" texto={operacao === 'LIMPAR' ? t.encosteLimpar : t.encosteGravar} /> : null}
+            {gravado ? <AvisoInline tipo="sucesso" texto={gravado} /> : null}
             <TituloSecao>{t.escolhaPonto.toUpperCase()}</TituloSecao>
             <Campo placeholder={t.buscar} value={busca} onChangeText={setBusca} />
             <SeletorOpcoes

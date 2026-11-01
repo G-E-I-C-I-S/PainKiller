@@ -2,6 +2,16 @@
 // Ao publicar uma versão: acrescente uma entrada NO TOPO (a primeira é a versão atual).
 export const NOVIDADES: { v: string; d: string; t: string; itens: string[] }[] = [
   {
+    v: '0.2.5',
+    d: '01/11/2026',
+    t: 'Limpar tag',
+    itens: [
+      'Botão Limpar tag no modo Gravar, com confirmação.',
+      'Segurança: o app só grava ou apaga em tag vazia ou gravada por ele; tag de outro sistema fica intacta.',
+      'Tag já gravada com outro ponto não é sobrescrita: limpe antes.',
+    ],
+  },
+  {
     v: '0.2.4',
     d: '01/11/2026',
     t: 'Leitura NFC contínua',

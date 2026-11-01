@@ -71,6 +71,18 @@ export function pontoGravadoDoRegistro(r: RegistroNdef): PontoGravado | null {
   return { pontoId: partes[1], nome: partes[2] ?? '', local: partes[3] ?? '' };
 }
 
+/**
+ * O que a tag tem gravado, para decidir se pode ser limpa:
+ * só apagamos tag vazia ou com gravação do app; qualquer outro conteúdo (ex.: URL SUN do NTAG 424) fica intacto.
+ */
+export function conteudoDaTag(ndef: RegistroNdef[] | undefined): { tipo: 'VAZIA' } | { tipo: 'PONTO'; ponto: PontoGravado } | { tipo: 'OUTRO' } {
+  const registros = (ndef ?? []).filter((r) => r.tnf !== 0);
+  if (!registros.length) return { tipo: 'VAZIA' };
+  const pontos = registros.map(pontoGravadoDoRegistro);
+  if (pontos.every((p) => p)) return { tipo: 'PONTO', ponto: pontos[0]! };
+  return { tipo: 'OUTRO' };
+}
+
 export function interpretarTag(idHex: string | undefined, ndef: RegistroNdef[] | undefined, lidaEm = new Date()): LeituraNfc | null {
   const uidHex = (idHex ?? '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
   if (!uidHex) return null;

@@ -199,3 +199,9 @@ export async function vincularTagLocal(uidHex: string, tipo: TipoTagNfc, pontoRo
   });
   notificarMudanca();
 }
+
+/** Modo local: tira o vínculo da tag limpa, para ela não ser reconhecida pelo UID. */
+export async function desvincularTagLocal(uidHex: string) {
+  await db().runAsync('DELETE FROM tag_nfc_ref WHERE uid_hex = ?', uidHex);
+  notificarMudanca();
+}
