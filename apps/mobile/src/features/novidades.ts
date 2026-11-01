@@ -2,6 +2,12 @@
 // Ao publicar uma versão: acrescente uma entrada NO TOPO (a primeira é a versão atual).
 export const NOVIDADES: { v: string; d: string; t: string; itens: string[] }[] = [
   {
+    v: '0.2.4',
+    d: '01/11/2026',
+    t: 'Leitura NFC contínua',
+    itens: ['O leitor se religa sozinho depois de cada leitura e ao voltar do segundo plano: não para mais depois de algumas tags.'],
+  },
+  {
     v: '0.2.3',
     d: '01/11/2026',
     t: 'Ponto gravado na tag',

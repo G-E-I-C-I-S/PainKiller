@@ -1,5 +1,5 @@
 // Leitor NFC real (react-native-nfc-manager) em modo leitor, mais o leitor simulado de desenvolvimento.
-import { Platform } from 'react-native';
+import { AppState, Platform, type NativeEventSubscription } from 'react-native';
 import NfcManager, { Ndef, NfcEvents, NfcTech, type TagEvent } from 'react-native-nfc-manager';
 import { interpretarTag, textoGravacao, type LeituraNfc, type PontoGravado, type RegistroNdef } from './parser';
 
@@ -38,32 +38,70 @@ export const leitorNfcReal: LeitorNfc = {
 
   async iniciar(aoLer, aoFalhar) {
     await garantirInicio();
+    await leitorNfcReal.parar();
+    ativo = true;
+    let ultima = { uid: '', em: 0 };
     NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag: TagEvent) => {
       const leitura = interpretarTag(tag.id, tag.ndefMessage as RegistroNdef[] | undefined);
-      if (leitura) aoLer(leitura);
-      else aoFalhar({ codigo: 'FALHA_LEITURA' });
+      // Depois de cada leitura o leitor é religado (alguns Android param de entregar tags após algumas leituras);
+      // a mesma tag ainda encostada não conta de novo.
+      agendarRearme(1000);
+      if (!leitura) return aoFalhar({ codigo: 'FALHA_LEITURA' });
+      const agora = Date.now();
+      const repetida = leitura.uidHex === ultima.uid && agora - ultima.em < 2500;
+      ultima = { uid: leitura.uidHex, em: agora }; // tag parada no celular continua "vista" e não repete
+      if (!repetida) aoLer(leitura);
     });
     NfcManager.setEventListener(NfcEvents.StateChanged, (e: { state?: string }) => {
       if (e?.state === 'off') aoFalhar({ codigo: 'NFC_DESLIGADO' });
+      if (e?.state === 'on') agendarRearme(300);
     });
+    // Tela desligada/voltando do segundo plano desliga o modo leitor: religa ao voltar, e a cada 20 s por garantia.
+    subApp = AppState.addEventListener('change', (s) => s === 'active' && agendarRearme(300));
+    vigia = setInterval(() => agendarRearme(0), 20_000);
     try {
-      await NfcManager.unregisterTagEvent().catch(() => {});
-      await NfcManager.registerTagEvent(
-        Platform.OS === 'android'
-          ? { isReaderModeEnabled: true, readerModeFlags: FLAGS_LEITOR, readerModeDelay: 250 }
-          : { alertMessage: 'Encoste o celular na tag', invalidateAfterFirstRead: true },
-      );
+      await registrar();
     } catch (e) {
       aoFalhar({ codigo: 'FALHA_LEITURA', mensagem: e instanceof Error ? e.message : String(e) });
     }
   },
 
   async parar() {
+    ativo = false;
+    if (rearme) clearTimeout(rearme);
+    if (vigia) clearInterval(vigia);
+    subApp?.remove();
+    rearme = vigia = null;
+    subApp = null;
     NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
     NfcManager.setEventListener(NfcEvents.StateChanged, null);
     await NfcManager.unregisterTagEvent().catch(() => {});
   },
 };
+
+let ativo = false;
+let rearme: ReturnType<typeof setTimeout> | null = null;
+let vigia: ReturnType<typeof setInterval> | null = null;
+let subApp: NativeEventSubscription | null = null;
+
+async function registrar() {
+  await NfcManager.unregisterTagEvent().catch(() => {});
+  if (!ativo) return;
+  await NfcManager.registerTagEvent(
+    Platform.OS === 'android'
+      ? { isReaderModeEnabled: true, readerModeFlags: FLAGS_LEITOR, readerModeDelay: 250 }
+      : { alertMessage: 'Encoste o celular na tag', invalidateAfterFirstRead: true },
+  );
+}
+
+function agendarRearme(ms: number) {
+  if (!ativo || Platform.OS !== 'android') return;
+  if (rearme) clearTimeout(rearme);
+  rearme = setTimeout(() => {
+    rearme = null;
+    registrar().catch(() => {});
+  }, ms);
+}
 
 /**
  * Grava o ponto dentro da tag (registro de texto NDEF). Espera a tag ser encostada.
