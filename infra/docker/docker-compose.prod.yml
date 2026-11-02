@@ -1,0 +1,44 @@
+# Produção na VM do campus: docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env up -d --build
+services:
+  banco:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: guardiao
+      POSTGRES_PASSWORD: ${BANCO_SENHA:?defina BANCO_SENHA}
+      POSTGRES_DB: guardiao
+    volumes: [banco:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guardiao"]
+      interval: 5s
+      retries: 20
+
+  migracao:
+    build: { context: ../.., dockerfile: Dockerfile }
+    image: guardiao-api
+    environment: &env
+      DATABASE_URL: postgresql://guardiao:${BANCO_SENHA}@banco:5432/guardiao
+      JWT_SEGREDO: ${JWT_SEGREDO:?defina JWT_SEGREDO com 32+ caracteres}
+    command: sh -c "npx prisma migrate deploy && node dist/seed.js"
+    depends_on: { banco: { condition: service_healthy } }
+
+  api:
+    image: guardiao-api
+    restart: unless-stopped
+    environment: *env
+    depends_on: { migracao: { condition: service_completed_successfully } }
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMINIO: ${DOMINIO:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    depends_on: [api]
+
+volumes:
+  banco:
+  caddy:

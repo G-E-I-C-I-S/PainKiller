@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+/* Mesma paleta do app (Telas.pdf): escuro por padrão, claro opcional. */
+:root {
+  --fundo: #0e141b;
+  --superficie: #161e27;
+  --elevada: #1d2631;
+  --borda: #263241;
+  --texto: #f2f4f7;
+  --texto2: #8c99a8;
+  --primaria: #f2b33d;
+  --sobre-primaria: #1a1205;
+  --sucesso: #34d17a;
+  --aviso: #f2b33d;
+  --erro: #ff8a5b;
+  --info: #6ea8fe;
+  --critica: #ff5c5c;
+  color-scheme: dark;
+}
+
+:root[data-tema='claro'] {
+  --fundo: #f4f6f8;
+  --superficie: #ffffff;
+  --elevada: #eef1f4;
+  --borda: #d9dee4;
+  --texto: #111821;
+  --texto2: #5b6775;
+  --primaria: #c98a0e;
+  --sobre-primaria: #ffffff;
+  --sucesso: #138a4b;
+  --aviso: #a86d00;
+  --erro: #c6461c;
+  --info: #2a66c9;
+  --critica: #c62828;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-elevada: var(--elevada);
+  --color-borda: var(--borda);
+  --color-texto: var(--texto);
+  --color-texto2: var(--texto2);
+  --color-primaria: var(--primaria);
+  --color-sobre-primaria: var(--sobre-primaria);
+  --color-sucesso: var(--sucesso);
+  --color-aviso: var(--aviso);
+  --color-erro: var(--erro);
+  --color-info: var(--info);
+  --color-critica: var(--critica);
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primaria);
+  outline-offset: 2px;
+}

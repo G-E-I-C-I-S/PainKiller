@@ -1,0 +1,42 @@
+{
+  "name": "@painkiller/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API do Guardião: autenticação, sincronização do app, painel e cadastros.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "dev": "node scripts/local.mjs",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node dist/seed.js",
+    "prisma:generate": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/serve-static": "^5.0.0",
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.2",
+    "jose": "^6.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "uuidv7": "^1.0.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "embedded-postgres": "17.11.0-beta.19",
+    "prisma": "^6.19.0",
+    "typescript": "^5.9.0"
+  },
+  "allowScripts": {
+    "@embedded-postgres/windows-x64@17.11.0-beta.19": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
+  }
+}

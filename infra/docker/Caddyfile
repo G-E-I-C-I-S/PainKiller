@@ -1,0 +1,5 @@
+# Com DOMINIO=guardiao.exemplo.edu.br o Caddy tira o certificado HTTPS sozinho; sem domínio, serve HTTP na porta 80.
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy api:3000
+}

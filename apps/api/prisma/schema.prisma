@@ -1,0 +1,389 @@
+// Modelo de dados da V1 (docs/05-modelo-de-dados.md), num schema só por enquanto.
+// Fotos ficam no próprio banco (bytea) até o MinIO entrar (ADR-0014).
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Papel {
+  VIGILANTE
+  COORDENADOR
+  RESPONSAVEL
+  ADMINISTRADOR
+}
+
+enum StatusRonda {
+  AGENDADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  INCOMPLETA
+  NAO_REALIZADA
+  CANCELADA
+}
+
+enum Gravidade {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum StatusOcorrencia {
+  ABERTA
+  EM_ATENDIMENTO
+  RESOLVIDA
+  ARQUIVADA
+}
+
+enum StatusRevisao {
+  NAO_REQUER
+  PENDENTE
+  ACEITA
+  REJEITADA
+}
+
+model Campus {
+  id                     String   @id
+  nome                   String
+  fuso                   String   @default("America/Sao_Paulo")
+  politicaGeo            String   @default("SINALIZAR")
+  precisaoMaximaM        Int      @default(100)
+  toleranciaInicioMin    Int      @default(30)
+  inatividadeBloqueioMin Int      @default(10)
+  limiteDesvioRelogioMin Int      @default(5)
+  criadoEm               DateTime @default(now())
+
+  usuarios        Usuario[]
+  predios         Predio[]
+  tiposOcorrencia TipoOcorrencia[]
+  roteiros        Roteiro[]
+  rondas          Ronda[]
+}
+
+model Usuario {
+  id                  String   @id
+  campusId            String
+  nome                String
+  matricula           String   @unique
+  senhaHash           String
+  papel               Papel
+  ativo               Boolean  @default(true)
+  deveTrocarSenha     Boolean  @default(false)
+  avisoVersaoCiente   Int?
+  criadoEm            DateTime @default(now())
+
+  campus       Campus        @relation(fields: [campusId], references: [id])
+  dispositivos Dispositivo[]
+  sessoes      Sessao[]
+  rondas       Ronda[]       @relation("vigilante")
+  agendas      Agenda[]
+}
+
+model Dispositivo {
+  id                      String    @id
+  usuarioId               String
+  identificadorInstalacao String    @unique
+  plataforma              String
+  modelo                  String
+  versaoSo                String
+  versaoApp               String
+  revogadoEm              DateTime?
+  ultimoAcessoEm          DateTime  @default(now())
+  criadoEm                DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+model Sessao {
+  id            String    @id
+  usuarioId     String
+  dispositivoId String?
+  canal         String
+  familia       String
+  refreshHash   String    @unique
+  expiraEm      DateTime
+  revogadaEm    DateTime?
+  substituidaEm DateTime?
+  criadaEm      DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([familia])
+}
+
+model Predio {
+  id            String  @id
+  campusId      String
+  codigo        String
+  nome          String
+  latitude      Float?
+  longitude     Float?
+  raioGeofenceM Float?
+  ativo         Boolean @default(true)
+
+  campus  Campus       @relation(fields: [campusId], references: [id])
+  andares Andar[]
+  pontos  PontoRonda[]
+
+  @@unique([campusId, codigo])
+}
+
+model Andar {
+  id       String  @id
+  predioId String
+  nome     String
+  ordem    Int     @default(0)
+  ativo    Boolean @default(true)
+
+  predio Predio       @relation(fields: [predioId], references: [id])
+  pontos PontoRonda[]
+}
+
+model PontoRonda {
+  id              String  @id
+  predioId        String
+  andarId         String?
+  nome            String
+  instrucoes      String?
+  latitude        Float?
+  longitude       Float?
+  raioToleranciaM Float   @default(30)
+  ativo           Boolean @default(true)
+
+  predio Predio  @relation(fields: [predioId], references: [id])
+  andar  Andar?  @relation(fields: [andarId], references: [id])
+  tags   TagNfc[]
+}
+
+model TagNfc {
+  id             String   @id
+  uidHex         String   @unique
+  tipo           String
+  pontoRondaId   String
+  ativo          Boolean  @default(true)
+  vinculadaEm    DateTime @default(now())
+  vinculadaPorId String?
+
+  ponto PontoRonda @relation(fields: [pontoRondaId], references: [id])
+}
+
+model TipoOcorrencia {
+  id              String    @id
+  campusId        String
+  nome            String
+  gravidadePadrao Gravidade
+  ordemExibicao   Int
+  ativo           Boolean   @default(true)
+
+  campus Campus @relation(fields: [campusId], references: [id])
+}
+
+model Roteiro {
+  id         String  @id
+  campusId   String
+  nome       String
+  exigeOrdem Boolean @default(false)
+  ativo      Boolean @default(true)
+
+  campus  Campus          @relation(fields: [campusId], references: [id])
+  pontos  RoteiroPonto[]
+  agendas Agenda[]
+}
+
+model RoteiroPonto {
+  roteiroId    String
+  pontoRondaId String
+  ordem        Int
+  obrigatorio  Boolean @default(true)
+
+  roteiro Roteiro @relation(fields: [roteiroId], references: [id], onDelete: Cascade)
+
+  @@id([roteiroId, pontoRondaId])
+}
+
+/// Agenda recorrente: gera uma ronda por dia marcado, no horário, para o vigilante.
+model Agenda {
+  id                  String    @id
+  roteiroId           String
+  vigilanteId         String
+  diasSemana          Int[]
+  horaInicio          String
+  duracaoMin          Int
+  toleranciaInicioMin Int       @default(30)
+  ativo               Boolean   @default(true)
+  geradaAte           DateTime?
+
+  roteiro   Roteiro @relation(fields: [roteiroId], references: [id])
+  vigilante Usuario @relation(fields: [vigilanteId], references: [id])
+}
+
+model Ronda {
+  id                       String      @id
+  campusId                 String
+  roteiroId                String
+  roteiroNome              String
+  exigeOrdem               Boolean
+  vigilanteId              String
+  agendaId                 String?
+  status                   StatusRonda @default(AGENDADA)
+  inicioPrevisto           DateTime
+  fimPrevisto              DateTime
+  toleranciaInicioMin      Int
+  iniciadaEmDispositivo    DateTime?
+  iniciadaRecebidoEm       DateTime?
+  inicioLocalizacao        Json?
+  finalizadaEmDispositivo  DateTime?
+  finalizadaRecebidoEm     DateTime?
+  fimLocalizacao           Json?
+  finalizadaComPendencias  Boolean?
+  observacao               String?
+  canceladaEm              DateTime?
+  canceladaPorId           String?
+  encerramentoMotivo       String?
+  encerradaPorId           String?
+  criadaEm                 DateTime    @default(now())
+
+  campus        Campus          @relation(fields: [campusId], references: [id])
+  vigilante     Usuario         @relation("vigilante", fields: [vigilanteId], references: [id])
+  pontos        RondaPonto[]
+  visitas       Visita[]
+  justificativas Justificativa[]
+  ocorrencias   Ocorrencia[]
+
+  @@index([agendaId, inicioPrevisto])
+  @@index([vigilanteId, inicioPrevisto])
+  @@index([status, inicioPrevisto])
+}
+
+model RondaPonto {
+  rondaId      String
+  pontoRondaId String
+  ordem        Int
+  obrigatorio  Boolean
+
+  ronda Ronda @relation(fields: [rondaId], references: [id], onDelete: Cascade)
+
+  @@id([rondaId, pontoRondaId])
+}
+
+model Visita {
+  id                         String        @id
+  rondaId                    String
+  pontoRondaId               String
+  uidHex                     String
+  payloadNfc                 String
+  lidoEmDispositivo          DateTime
+  recebidoEmServidor         DateTime      @default(now())
+  localizacao                Json?
+  localizacaoSimulada        Boolean
+  resultadoGeoDispositivo    String
+  resultadoGeo               String
+  validacaoTag               String
+  foraDaOrdem                Boolean
+  statusRevisao              StatusRevisao
+  revisadaPorId              String?
+  revisadaEm                 DateTime?
+  observacaoRevisao          String?
+  desvioRelogioMs            Int?
+  recebidoAposEncerramento   Boolean       @default(false)
+  checklist                  Json?
+
+  ronda Ronda @relation(fields: [rondaId], references: [id])
+
+  @@unique([rondaId, pontoRondaId])
+}
+
+model Justificativa {
+  id                        String   @id
+  rondaId                   String
+  pontoRondaId              String
+  motivo                    String
+  descricao                 String
+  justificadaEmDispositivo  DateTime
+  recebidoEmServidor        DateTime @default(now())
+  localizacao               Json?
+
+  ronda Ronda @relation(fields: [rondaId], references: [id])
+
+  @@unique([rondaId, pontoRondaId])
+}
+
+model Ocorrencia {
+  id                      String           @id
+  rondaId                 String
+  autorId                 String
+  tipoOcorrenciaId        String
+  gravidade               Gravidade
+  descricao               String?
+  predioId                String
+  pontoRondaId            String?
+  detalheLocal            String?
+  resolvidoNoLocal        Boolean          @default(false)
+  registradaEmDispositivo DateTime
+  recebidoEmServidor      DateTime         @default(now())
+  localizacao             Json?
+  localizacaoSimulada     Boolean          @default(false)
+  status                  StatusOcorrencia @default(ABERTA)
+  fotosAnunciadas         Json
+
+  ronda     Ronda              @relation(fields: [rondaId], references: [id])
+  fotos     Foto[]
+  historico OcorrenciaStatus[]
+}
+
+model OcorrenciaStatus {
+  id           String           @id
+  ocorrenciaId String
+  de           StatusOcorrencia
+  para         StatusOcorrencia
+  comentario   String?
+  usuarioId    String
+  em           DateTime         @default(now())
+
+  ocorrencia Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+}
+
+model Foto {
+  id                     String   @id
+  ocorrenciaId           String
+  sha256                 String
+  tamanhoBytes           Int
+  capturadaEmDispositivo DateTime?
+  recebidaEm             DateTime @default(now())
+  dados                  Bytes
+
+  ocorrencia Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+}
+
+model EventoSincronizacao {
+  id            String   @id
+  tipo          String
+  usuarioId     String
+  dispositivoId String?
+  resultado     String
+  codigo        String?
+  mensagem      String?
+  payload       Json
+  desvioMs      Int?
+  recebidoEm    DateTime @default(now())
+
+  @@index([usuarioId, recebidoEm])
+}
+
+model Auditoria {
+  id         BigInt   @id @default(autoincrement())
+  em         DateTime @default(now())
+  usuarioId  String?
+  acao       String
+  entidade   String
+  entidadeId String?
+  dados      Json?
+
+  @@index([entidade, entidadeId])
+}
