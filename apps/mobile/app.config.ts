@@ -43,7 +43,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  backgroundColor: '#0B0F14',
+  backgroundColor: '#0E141B',
   ios: {
     bundleIdentifier: atual.id,
     infoPlist: {
@@ -52,10 +52,10 @@ const config: ExpoConfig = {
   },
   android: {
     package: atual.id,
-    versionCode: 2,
+    versionCode: 3,
     allowBackup: false,
     adaptiveIcon: {
-      backgroundColor: '#0B0F14',
+      backgroundColor: '#0E141B',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
@@ -97,7 +97,7 @@ const config: ExpoConfig = {
     ['expo-local-authentication', { faceIDPermission: 'Use o Face ID para desbloquear o Guardião.' }],
     ['react-native-nfc-manager', { nfcPermission: 'O Guardião lê as tags NFC dos pontos de ronda.' }],
     ['expo-build-properties', { android: { usesCleartextTraffic: ambiente !== 'producao' } }],
-    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#0B0F14', imageWidth: 160 }],
+    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#0E141B', imageWidth: 180 }],
     './plugins/withNfcObrigatorio',
   ],
   experiments: { typedRoutes: false },
