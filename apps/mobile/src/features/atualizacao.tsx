@@ -1,9 +1,14 @@
 // Atualizador automático (como o do NewLife): ao abrir, procura uma versão nova no GitHub Pages,
 // baixa mostrando a rodinha de progresso, reinicia e mostra "O que há de novo" uma vez só.
 // Durante uma ronda em andamento, baixa em silêncio e aplica na próxima abertura (não interrompe o vigilante).
+// Mudança nativa (ícone, permissão, lib nova) não vai por aí: o app baixa o APK novo e abre o instalador do Android.
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Modal, View } from 'react-native';
+import { AppState, Modal, Platform, View } from 'react-native';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
+import * as Application from 'expo-application';
+import * as IntentLauncher from 'expo-intent-launcher';
+import * as FS from 'expo-file-system/legacy';
 import * as SecureStore from 'expo-secure-store';
 import Svg, { Circle } from 'react-native-svg';
 import { useTema } from '../tema/Tema';
@@ -29,6 +34,30 @@ function Rodinha({ progresso }: { progresso: number }) {
   );
 }
 
+interface ApkNovo { versionCode: number; versao: string; url: string; itens: string[] }
+
+const URL_APK = (Constants.expoConfig?.updates?.url ?? '').replace(/manifest\.json$/, 'apk.json');
+
+async function procurarApk(): Promise<ApkNovo | null> {
+  if (Platform.OS !== 'android' || !URL_APK) return null;
+  const r = await fetch(`${URL_APK}?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+  if (!r.ok) return null;
+  const apk = (await r.json()) as ApkNovo;
+  return apk.versionCode > Number(Application.nativeBuildVersion ?? 0) ? apk : null;
+}
+
+async function instalarApk(apk: ApkNovo, aoProgredir: (p: number) => void) {
+  const destino = `${FS.cacheDirectory}guardiao-${apk.versionCode}.apk`;
+  const d = FS.createDownloadResumable(apk.url, destino, {}, (p) => {
+    if (p.totalBytesExpectedToWrite > 0) aoProgredir(p.totalBytesWritten / p.totalBytesExpectedToWrite);
+  });
+  const r = await d.downloadAsync();
+  if (!r || r.status !== 200) throw new Error(`Download do APK falhou (${r?.status ?? 'sem resposta'})`);
+  const uri = await FS.getContentUriAsync(r.uri);
+  // 1 = FLAG_GRANT_READ_URI_PERMISSION. Na primeira vez o Android pede para permitir instalar apps do Guardião.
+  await IntentLauncher.startActivityAsync('android.intent.action.VIEW', { data: uri, flags: 1, type: 'application/vnd.android.package-archive' });
+}
+
 export function Atualizador() {
   const { cores } = useTema();
   const { downloadProgress, isDownloading } = Updates.useUpdates();
@@ -36,6 +65,10 @@ export function Atualizador() {
   const [progressoFinal, setProgressoFinal] = useState(0);
   const [novidades, setNovidades] = useState<typeof NOVIDADES>([]);
   const verificando = useRef(false);
+  const [apk, setApk] = useState<ApkNovo | null>(null);
+  const [baixandoApk, setBaixandoApk] = useState<number | null>(null);
+  const [erroApk, setErroApk] = useState<string | null>(null);
+  const adiadoApk = useRef(false);
 
   // Depois de atualizar: mostra as novidades das versões que o aparelho ainda não viu.
   useEffect(() => {
@@ -54,6 +87,11 @@ export function Atualizador() {
       if (verificando.current) return;
       verificando.current = true;
       try {
+        const novo = adiadoApk.current ? null : await procurarApk().catch(() => null);
+        if (novo && !(await rondaEmAndamento().catch(() => null))) {
+          setApk(novo);
+          return;
+        }
         const r = await Updates.checkForUpdateAsync();
         if (!r.isAvailable) return;
         const emRonda = await rondaEmAndamento().catch(() => null);
@@ -96,7 +134,58 @@ export function Atualizador() {
           </Texto>
         </View>
       </Modal>
-      <Modal visible={!mostrando && novidades.length > 0} transparent animationType="fade" onRequestClose={() => setNovidades([])}>
+      <Modal visible={!!apk} transparent animationType="fade" statusBarTranslucent onRequestClose={() => baixandoApk === null && setApk(null)}>
+        <View style={{ flex: 1, backgroundColor: cores.fundo, alignItems: 'center', justifyContent: 'center', gap: esp[5], padding: esp[6] }}>
+          {baixandoApk !== null ? <Rodinha progresso={baixandoApk} /> : null}
+          <Texto variante="titulo" centro>
+            {baixandoApk === null ? `Versão nova do app: ${apk?.versao}` : 'Baixando a versão nova'}
+          </Texto>
+          {baixandoApk === null
+            ? apk?.itens.map((i) => (
+                <Texto key={i} cor="textoSecundario" centro>
+                  • {i}
+                </Texto>
+              ))
+            : null}
+          <Texto variante="legenda" cor="textoSecundario" centro>
+            Depois toque em Instalar na tela do Android. Seus registros continuam guardados.
+          </Texto>
+          {erroApk ? (
+            <Texto cor="erro" centro>
+              {erroApk}
+            </Texto>
+          ) : null}
+          {baixandoApk === null ? (
+            <View style={{ alignSelf: 'stretch', gap: esp[2] }}>
+              <Botao
+                titulo="Baixar e instalar"
+                onPress={async () => {
+                  if (!apk) return;
+                  setErroApk(null);
+                  setBaixandoApk(0);
+                  try {
+                    await instalarApk(apk, setBaixandoApk);
+                  } catch (e) {
+                    registrarErro('atualizacao-apk', e);
+                    setErroApk('Não deu para baixar agora. Confira a internet e tente de novo.');
+                  } finally {
+                    setBaixandoApk(null);
+                  }
+                }}
+              />
+              <Botao
+                titulo="Depois"
+                variante="secundario"
+                onPress={() => {
+                  adiadoApk.current = true;
+                  setApk(null);
+                }}
+              />
+            </View>
+          ) : null}
+        </View>
+      </Modal>
+      <Modal visible={!mostrando && !apk && novidades.length > 0} transparent animationType="fade" onRequestClose={() => setNovidades([])}>
         <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'center', padding: esp[5] }}>
           <View style={{ backgroundColor: cores.superficie, borderRadius: raio.grande, padding: esp[5], gap: esp[3], borderWidth: 1, borderColor: cores.borda }}>
             <Texto variante="titulo">App atualizado!</Texto>

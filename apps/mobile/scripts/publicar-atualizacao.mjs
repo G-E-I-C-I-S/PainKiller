@@ -50,4 +50,13 @@ const manifesto = {
 
 fs.writeFileSync(path.join(saida, 'updates', 'android', 'manifest.json'), JSON.stringify(manifesto));
 fs.writeFileSync(path.join(saida, '.nojekyll'), '');
+// APK atual: o app compara com o próprio versionCode e oferece baixar e instalar (ícone, permissões, libs nativas).
+// O arquivo fica num release do GitHub com a tag apk-v<versionCode> (gh release create apk-vN guardiao.apk).
+const repo = process.env.APP_REPO ?? 'G-E-I-C-I-S/PainKiller';
+const versionCode = config.android?.versionCode ?? 1;
+const notas = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts', 'apk-notas.json'), 'utf8'));
+fs.writeFileSync(
+  path.join(saida, 'updates', 'android', 'apk.json'),
+  JSON.stringify({ versionCode, versao: config.version, url: `https://github.com/${repo}/releases/download/apk-v${versionCode}/guardiao.apk`, itens: notas.itens }),
+);
 console.log(`Atualização ${id} (runtime ${runtimeVersion}) gerada em ${saida}`);

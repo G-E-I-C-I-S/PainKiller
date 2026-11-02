@@ -31,10 +31,10 @@ const config: ExpoConfig = {
   name: atual.nome,
   slug: 'guardiao',
   scheme: 'guardiao',
-  version: '0.2.0',
+  version: '0.3.0',
   // Mude o runtimeVersion SEMPRE que mudar algo nativo (lib nova, permissão, plugin): aí precisa de APK novo.
   // Mudança só de telas/JS vai pelo atualizador automático (scripts/publicar-atualizacao.mjs).
-  runtimeVersion: '0.2.0',
+  runtimeVersion: '0.3.0',
   updates: {
     url: process.env.APP_UPDATES_URL ?? 'https://g-e-i-c-i-s.github.io/PainKiller/updates/android/manifest.json',
     checkAutomatically: 'NEVER',
@@ -69,6 +69,7 @@ const config: ExpoConfig = {
       'android.permission.USE_BIOMETRIC',
       'android.permission.INTERNET',
       'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.REQUEST_INSTALL_PACKAGES',
     ],
     blockedPermissions: [
       'android.permission.ACCESS_BACKGROUND_LOCATION',
