@@ -56,6 +56,7 @@ const MIGRACOES: string[] = [
 ];
 
 let banco: SQLite.SQLiteDatabase | null = null;
+let contaAberta: string | null = null;
 const ouvintes = new Set<() => void>();
 
 async function chaveDoBanco(): Promise<string> {
@@ -68,10 +69,20 @@ async function chaveDoBanco(): Promise<string> {
   return chave;
 }
 
-export async function abrirBanco(): Promise<SQLite.SQLiteDatabase> {
-  if (banco) return banco;
+/**
+ * Cada conta tem o seu próprio arquivo de banco: rondas, leituras, ocorrências e fila de envio não se misturam.
+ * Entrar com outra conta fecha o banco da anterior.
+ */
+export async function abrirBanco(conta: string): Promise<SQLite.SQLiteDatabase> {
+  if (banco && contaAberta === conta) return banco;
+  if (banco) {
+    const anterior = banco;
+    banco = null;
+    contaAberta = null;
+    await anterior.closeAsync().catch(() => {});
+  }
   const chave = await chaveDoBanco();
-  const db = await SQLite.openDatabaseAsync('guardiao.db');
+  const db = await SQLite.openDatabaseAsync(`guardiao_${conta.replace(/[^0-9A-Za-z_-]/g, '')}.db`);
   await db.execAsync(`PRAGMA key = "x'${chave}'";`);
   // Falha aqui = chave não abre o banco (ex.: backup restaurado em outro aparelho). Nada é apagado.
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -83,6 +94,7 @@ export async function abrirBanco(): Promise<SQLite.SQLiteDatabase> {
     });
   }
   banco = db;
+  contaAberta = conta;
   return db;
 }
 

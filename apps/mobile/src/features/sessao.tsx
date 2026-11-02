@@ -50,6 +50,9 @@ const USUARIOS_LOCAIS: Record<string, Usuario> = {
 };
 const SENHA_LOCAL = '1234';
 
+/** Nome do banco da conta: cada usuário (e o modo local de teste) tem os seus dados separados no aparelho. */
+const contaDe = (s: { usuario: { id: string }; modo: 'LOCAL' | 'API' }) => `${s.modo === 'LOCAL' ? 'local' : 'api'}_${s.usuario.id}`;
+
 async function identificadorInstalacao() {
   let id = await SecureStore.getItemAsync('id_instalacao', OPCOES);
   if (!id) {
@@ -82,17 +85,20 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     (async () => {
       try {
         await carregarApiUrl();
-        await abrirBanco();
+        const s = await SecureStore.getItemAsync('sessao', OPCOES);
+        if (!s) {
+          setEstado('SEM_SESSAO');
+          return;
+        }
+        const salva: DadosSessao = JSON.parse(s);
+        await abrirBanco(contaDe(salva));
+        if (salva.modo === 'LOCAL') await prepararModoLocal();
         minutosInatividade.current = (await configuracao()).inatividadeBloqueioMin;
+        setSessao(salva);
+        setEstado('BLOQUEADA');
       } catch (e) {
         setErroBanco(e instanceof Error ? e.message : String(e));
-        return;
       }
-      const s = await SecureStore.getItemAsync('sessao', OPCOES);
-      if (s) {
-        setSessao(JSON.parse(s));
-        setEstado('BLOQUEADA');
-      } else setEstado('SEM_SESSAO');
     })();
     definirAoSessaoExpirar(() => encerrarSessao());
   }, [encerrarSessao]);
@@ -131,6 +137,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     if (!apiUrl()) {
       const u = local;
       if (!u || senha.trim() !== SENHA_LOCAL) throw new Error(textos.login.credenciaisInvalidas);
+      await abrirBanco(contaDe({ usuario: u, modo: 'LOCAL' }));
       await prepararModoLocal();
       const avisoVisto = await kvLer(`aviso_visto_${u.id}`);
       await salvar({ usuario: u, modo: 'LOCAL', avisoPendente: !avisoVisto });
@@ -153,6 +160,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
         });
         const d = r.dados;
         await guardarTokens(d.accessToken, d.refreshToken);
+        await abrirBanco(contaDe({ usuario: { id: d.usuario.id }, modo: 'API' }));
         await salvar({
           usuario: { id: d.usuario.id, nome: d.usuario.nome, matricula: m, papel: d.usuario.papel },
           modo: 'API',

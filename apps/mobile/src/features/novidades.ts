@@ -2,6 +2,15 @@
 // Ao publicar uma versão: acrescente uma entrada NO TOPO (a primeira é a versão atual).
 export const NOVIDADES: { v: string; d: string; t: string; itens: string[] }[] = [
   {
+    v: '0.2.6',
+    d: '01/11/2026',
+    t: 'Cada conta com seus dados',
+    itens: [
+      'Rondas, leituras, ocorrências e envios agora ficam separados por conta no celular.',
+      'Ícone e tela de abertura novos (chegam com o próximo APK).',
+    ],
+  },
+  {
     v: '0.2.5',
     d: '01/11/2026',
     t: 'Limpar tag',
